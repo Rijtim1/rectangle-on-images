@@ -4,6 +4,7 @@ from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
 from PIL import Image, ImageTk
 
+
 class Display(Frame):
     def __init__(self, parent=None):
         Frame.__init__(self, parent)
@@ -15,17 +16,20 @@ class Display(Frame):
         self.makeWidgets()
         self.size = None
         self.shapes = []
-        self.color = "red" # default color
+        self.color = "red"  # default color
+        self.filename = None
 
     def makeWidgets(self):
         # navigation bar
         nav = Frame(self)
-        Button(nav, text='Load Image', command=self.onOpen).pack(side=LEFT)
+        load = Button(nav, text='Load Image',
+                      command=self.onOpen).pack(side=LEFT)
         draw = Button(nav, text='Draw', command=self.letDraw).pack(side=LEFT)
-        pickColor = Button(nav, text='Pick Color', command=self.pickColor).pack(side=LEFT)
-        save = Button(nav, text='Save', command=self.saveFile).pack(side=LEFT)
-
-        Button(nav, text='Quit', command=self.quit).pack(side=LEFT)
+        pickColor = Button(nav, text='Pick Color',
+                           command=self.pickColor).pack(side=LEFT)
+        # save = Button(nav, text='Save', command=self.saveFile).pack(side=LEFT)
+        help = Button(nav, text='Help', command=self.help).pack(side=LEFT)
+        quit = Button(nav, text='Quit', command=self.quit).pack(side=LEFT)        
         nav.pack(side=TOP, fill=X)
 
         self.data = Canvas(self, width=500, height=500, bg='white')
@@ -35,10 +39,23 @@ class Display(Frame):
         color = colorchooser.askcolor()
         self.color = color[1]
         # print(self.color)
-    
-    def saveFile(self):
-        print("Save File")
-        pass
+
+    def help(self):
+        showinfo("Help", "1. Load an image first\n2. Select Draw\n3. Select a color\n4. Click and drag to draw a rectangle\n5. Repeat steps 2-4 to draw more rectangles\n6. Select Quit to exit the program")
+
+    # def saveFile(self):
+    #     # error handling for when the user tires to save without loading an image first
+    #     try:
+    #         x1, y1 = self.size
+    #         x2, y2 = self.size
+    #         self.shapes.append(self.data.create_rectangle(
+    #             x1, y1, x2, y2, fill=self.color))
+    #         self.data.update()
+    #         self.data.postscript(file=self.filename + ".ps", colormode='color')
+    #         showinfo("Success", "File saved successfully")
+    #     except:
+    #         showinfo("Error", "Please load an image first!")
+    #         return
 
     def quit(self) -> None:
         return super().quit()
@@ -47,7 +64,17 @@ class Display(Frame):
         filename = askopenfilename()
         if filename:
             # load the image file
-            img = Image.open(filename)
+            # error handling for when something happens when trying to load the image
+            try:
+                img = Image.open(filename)
+                name = filename.split("/")[-1]
+                self.filename = name
+
+            except:
+                showinfo(title='Open Image File',
+                         message='Failed to load {}'.format(filename))
+                return
+
             self.size = img.size
             x1, y1 = self.size
             # resize the canvas to image size
@@ -56,23 +83,26 @@ class Display(Frame):
             img = ImageTk.PhotoImage(img)
             # display the image
             self.data.create_image(0, 0, image=img, anchor=NW)
-            rec = self.data.create_rectangle(0,0, x1, y1)
+            rec = self.data.create_rectangle(0, 0, x1, y1)
             self.data.image = img
         self.imageLoaded = True
 
     def letDraw(self):
+
         shape = []
 
         def draw_shape(shape):
-            rec = self.data.create_rectangle(*shape, activeoutline="red", outline=self.color)
+            rec = self.data.create_rectangle(
+                *shape, activeoutline="red", outline=self.color)
             self.shapes.append(rec)
 
         def click(event):
             # print(f"clicked at {event.x} {event.y}")
             shape.append(event.x)
             shape.append(event.y)
-        
+
         def release(event):
+            # error handling for when the user tires to draw without loading an image first
             try:
                 x1, y1 = self.size
             except:
@@ -89,10 +119,12 @@ class Display(Frame):
                 event.y = 0
             shape.append(event.x)
             shape.append(event.y)
+            # error handling for when user tries to draw on the image without selecting draw first
             try:
                 draw_shape(shape)
             except:
                 showinfo("Error", "Please select Draw First!")
+                return
             # print(f"clicked at {event.x} {event.y}")
 
         self.data.bind('<ButtonPress-1>', click)
@@ -101,5 +133,3 @@ class Display(Frame):
 
 if __name__ == '__main__':
     Display().mainloop()
-
-            
