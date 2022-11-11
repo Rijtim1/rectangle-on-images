@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import colorchooser
 from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
 
@@ -14,15 +15,32 @@ class Display(Frame):
         self.size = None
         self.shapes = []
         self.canDraw = False
+        self.color = "red" # default color
 
     def makeWidgets(self):
-        self.b1 = Button(self, text='File Open', command=self.onOpen).pack()
-        self.b2 = Button(self, text='Draw Shapes', command=self.letDraw).pack()
-        # self.b3 = Button(self, text='Exit Draw', command=self.exitDraw).pack()
-        # initialize the canvas
-        # size of canvas will be the size of the image
+        # navigation bar
+        nav = Frame(self)
+        Button(nav, text='Load Image', command=self.onOpen).pack(side=LEFT)
+        Button(nav, text='Draw', command=self.letDraw).pack(side=LEFT)
+        Button(nav, text='Pick Color', command=self.pickColor).pack(side=LEFT)
+        Button(nav, text='Save', command=self.saveFile).pack(side=LEFT)
+        Button(nav, text='Quit', command=self.quit).pack(side=LEFT)
+        nav.pack(side=TOP, fill=X)
+
         self.data = Canvas(self, width=500, height=500, bg='white')
         self.data.pack(expand=YES, fill=BOTH)
+
+    def pickColor(self):
+        color = colorchooser.askcolor()
+        self.color = color[1]
+        print(self.color)
+    
+    def saveFile(self):
+        print("Save File")
+        pass
+
+    def quit(self) -> None:
+        return super().quit()
 
     def onOpen(self):
         filename = askopenfilename()
@@ -44,7 +62,7 @@ class Display(Frame):
         shape = []
 
         def draw_shape(shape):
-            rec = self.data.create_rectangle(*shape, activeoutline="red", outline="yellow")
+            rec = self.data.create_rectangle(*shape, activeoutline="red", outline=self.color)
             self.shapes.append(rec)
 
         def click(event):
