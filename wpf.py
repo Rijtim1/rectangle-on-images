@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import colorchooser
 from tkinter.filedialog import askopenfilename
+from tkinter.messagebox import showinfo
 from PIL import Image, ImageTk
 
 class Display(Frame):
@@ -9,21 +10,21 @@ class Display(Frame):
 
         # set the window name
         self.master.title('Rectangle on Image')
-        
+        self.imageLoaded = False
         self.pack()
         self.makeWidgets()
         self.size = None
         self.shapes = []
-        self.canDraw = False
         self.color = "red" # default color
 
     def makeWidgets(self):
         # navigation bar
         nav = Frame(self)
         Button(nav, text='Load Image', command=self.onOpen).pack(side=LEFT)
-        Button(nav, text='Draw', command=self.letDraw).pack(side=LEFT)
-        Button(nav, text='Pick Color', command=self.pickColor).pack(side=LEFT)
-        Button(nav, text='Save', command=self.saveFile).pack(side=LEFT)
+        draw = Button(nav, text='Draw', command=self.letDraw).pack(side=LEFT)
+        pickColor = Button(nav, text='Pick Color', command=self.pickColor).pack(side=LEFT)
+        save = Button(nav, text='Save', command=self.saveFile).pack(side=LEFT)
+
         Button(nav, text='Quit', command=self.quit).pack(side=LEFT)
         nav.pack(side=TOP, fill=X)
 
@@ -33,7 +34,7 @@ class Display(Frame):
     def pickColor(self):
         color = colorchooser.askcolor()
         self.color = color[1]
-        print(self.color)
+        # print(self.color)
     
     def saveFile(self):
         print("Save File")
@@ -57,6 +58,7 @@ class Display(Frame):
             self.data.create_image(0, 0, image=img, anchor=NW)
             rec = self.data.create_rectangle(0,0, x1, y1)
             self.data.image = img
+        self.imageLoaded = True
 
     def letDraw(self):
         shape = []
@@ -66,12 +68,17 @@ class Display(Frame):
             self.shapes.append(rec)
 
         def click(event):
-            print(f"clicked at {event.x} {event.y}")
+            # print(f"clicked at {event.x} {event.y}")
             shape.append(event.x)
             shape.append(event.y)
         
         def release(event):
-            x1, y1 = self.size
+            try:
+                x1, y1 = self.size
+            except:
+                showinfo("Error", "Please load an image first!")
+                return
+
             if event.x > x1:
                 event.x = x1
             if event.x < 0:
@@ -82,8 +89,11 @@ class Display(Frame):
                 event.y = 0
             shape.append(event.x)
             shape.append(event.y)
-            draw_shape(shape)
-            print(f"clicked at {event.x} {event.y}")
+            try:
+                draw_shape(shape)
+            except:
+                showinfo("Error", "Please select Draw First!")
+            # print(f"clicked at {event.x} {event.y}")
 
         self.data.bind('<ButtonPress-1>', click)
         self.data.bind('<ButtonRelease-1>', release)
