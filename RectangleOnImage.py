@@ -63,14 +63,16 @@ class RectangleDrawingApp:
 
     def on_canvas_drag(self, event):
         if self.start_x is not None and self.start_y is not None:
+            self.canvas.delete("temp_rectangle")  # Remove previous temporary rectangle
             x = min(event.x, self.start_x)
             y = min(event.y, self.start_y)
             width = abs(event.x - self.start_x)
             height = abs(event.y - self.start_y)
-            self.draw_rectangle(x, y, width, height, self.color)
+            self.draw_rectangle(x, y, width, height, self.color, tag="temp_rectangle")
 
     def on_canvas_release(self, event):
         if self.start_x is not None and self.start_y is not None:
+            self.canvas.delete("temp_rectangle")  # Remove temporary rectangle
             x = min(event.x, self.start_x)
             y = min(event.y, self.start_y)
             width = abs(event.x - self.start_x)
@@ -79,30 +81,10 @@ class RectangleDrawingApp:
             self.start_x = None
             self.start_y = None
 
-    def draw_rectangle(self, x, y, width, height, color):
+    def draw_rectangle(self, x, y, width, height, color, tag=None):
         rectangle = Rectangle(x, y, x + width, y + height, color)
         self.rectangles.append(rectangle)
-        self.canvas.create_rectangle(rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2, outline=color)
-
-    def pick_rectangle(self, event):
-        for rectangle in self.rectangles:
-            if rectangle.x1 < event.x < rectangle.x2 and rectangle.y1 < event.y < rectangle.y2:
-                rectangle.selected = True
-                self.selected_rectangle = rectangle
-            else:
-                rectangle.selected = False
-
-    def drag_rectangle(self, event):
-        if self.selected_rectangle is not None:
-            dx = event.x - self.start_x
-            dy = event.y - self.start_y
-            self.canvas.move(self.selected_rectangle, dx, dy)
-            self.start_x = event.x
-            self.start_y = event.y
-
-    def release_rectangle(self, event):
-        self.start_x = None
-        self.start_y = None
+        self.canvas.create_rectangle(rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2, outline=color, tag=tag)
 
     def mainloop(self):
         self.root.mainloop()
