@@ -1,97 +1,114 @@
 from tkinter import *
 from tkinter import colorchooser
 from tkinter.filedialog import askopenfilename
-from tkinter.messagebox import showinfo
 from PIL import Image, ImageTk
 
-class Display(Frame):
-    def __init__(self, parent=None):
-        Frame.__init__(self, parent)
-        self.pack()
+class Rectangle:
+    def __init__(self, x1, y1, x2, y2, color):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.color = color
+        self.selected = False
 
-        self.image_loaded = False
-        self.filename = None
-        self.color = "red"  # default color
-        self.shapes = []
+class RectangleDrawingApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Rectangle Drawing App")
+        self.canvas_width = 800
+        self.canvas_height = 600
+        self.rectangles = []
+        self.selected_rectangle = None
+        self.color = "red"
+        self.start_x = None
+        self.start_y = None
 
         self.create_widgets()
 
     def create_widgets(self):
-        # navigation bar
-        nav = Frame(self)
-        load_button = Button(nav, text='Load Image', command=self.on_open)
-        load_button.pack(side=LEFT)
-        draw_button = Button(nav, text='Draw', command=self.let_draw)
-        draw_button.pack(side=LEFT)
-        pick_color_button = Button(nav, text='Pick Color', command=self.pick_color)
-        pick_color_button.pack(side=LEFT)
-        help_button = Button(nav, text='Help', command=self.show_help)
-        help_button.pack(side=LEFT)
-        quit_button = Button(nav, text='Quit', command=self.quit)
-        quit_button.pack(side=LEFT)        
-        nav.pack(side=TOP, fill=X)
+        # Load Image button
+        load_button = Button(self.root, text="Load Image", command=self.load_image)
+        load_button.pack()
 
-        self.canvas = Canvas(self, width=500, height=500, bg='white')
-        self.canvas.pack(expand=YES, fill=BOTH)
+        # Canvas for drawing
+        self.canvas = Canvas(self.root, width=self.canvas_width, height=self.canvas_height)
+        self.canvas.pack()
+        self.canvas.bind("<Button-1>", self.on_canvas_click)
+        self.canvas.bind("<B1-Motion>", self.on_canvas_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_canvas_release)
+
+        # Color Palette button
+        color_button = Button(self.root, text="Pick Color", command=self.pick_color)
+        color_button.pack()
+
+    def load_image(self):
+        filename = askopenfilename()
+        if filename:
+            try:
+                img = Image.open(filename)
+                self.image = ImageTk.PhotoImage(img)
+                self.canvas.config(width=self.image.width(), height=self.image.height())
+                self.canvas.create_image(0, 0, image=self.image, anchor=NW)
+            except Exception as e:
+                print("Failed to load image:", str(e))
 
     def pick_color(self):
         color = colorchooser.askcolor()
         self.color = color[1]
 
-    def show_help(self):
-        message = "1. Load an image first\n2. Select Draw\n3. Select a color\n4. Click and drag to draw a rectangle\n5. Repeat steps 2-4 to draw more rectangles\n6. Select Quit to exit the program"
-        showinfo("Help", message)
+    def on_canvas_click(self, event):
+        self.start_x = event.x
+        self.start_y = event.y
 
-    def on_open(self):
-        filename = askopenfilename()
-        if filename:
-            # load the image file
-            # error handling for when something happens when trying to load the image
-            try:
-                img = Image.open(filename)
-                name = filename.split("/")[-1]
-                self.filename = name
-            except:
-                showinfo(title='Open Image File', message='Failed to load {}'.format(filename))
-                return
+    def on_canvas_drag(self, event):
+        if self.start_x is not None and self.start_y is not None:
+            x = min(event.x, self.start_x)
+            y = min(event.y, self.start_y)
+            width = abs(event.x - self.start_x)
+            height = abs(event.y - self.start_y)
+            self.draw_rectangle(x, y, width, height, self.color)
 
-            self.size = img.size
-            x1, y1 = self.size
-            # resize the canvas to image size
-            self.canvas.config(width=img.width, height=img.height)
-            # create a photo image object
-            img = ImageTk.PhotoImage(img)
-            # display the image
-            self.canvas.create_image(0, 0, image=img, anchor=NW)
-            rec = self.canvas.create_rectangle(0, 0, x1, y1)
-            self.data.image = img
-        self.imageLoaded = True
+    def on_canvas_release(self, event):
+        if self.start_x is not None and self.start_y is not None:
+            x = min(event.x, self.start_x)
+            y = min(event.y, self.start_y)
+            width = abs(event.x - self.start_x)
+            height = abs(event.y - self.start_y)
+            self.draw_rectangle(x, y, width, height, self.color)
+            self.start_x = None
+            self.start_y = None
 
-    def let_draw(self):
-        self.shape = []
-        self.canvas.bind('<ButtonPress-1>', self.on_click)
-        self.canvas.bind('<ButtonRelease-1>', self.on_release)
+    def draw_rectangle(self, x, y, width, height, color):
+        rectangle = Rectangle(x, y, x + width, y + height, color)
+        self.rectangles.append(rectangle)
+        self.canvas.create_rectangle(rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2, outline=color)
 
-    def on_click(self, event):
-        self.shape.append(event.x)
-        self.shape.append(event.y)
+    def pick_rectangle(self, event):
+        for rectangle in self.rectangles:
+            if rectangle.x1 < event.x < rectangle.x2 and rectangle.y1 < event.y < rectangle.y2:
+                rectangle.selected = True
+                self.selected_rectangle = rectangle
+            else:
+                rectangle.selected = False
 
-    def on_release(self, event):
-        try:
-            x1, y1 = self.size
-        except AttributeError:
-            showinfo("Error", "Please load an image first!")
-            return
+    def drag_rectangle(self, event):
+        if self.selected_rectangle is not None:
+            dx = event.x - self.start_x
+            dy = event.y - self.start_y
+            self.canvas.move(self.selected_rectangle, dx, dy)
+            self.start_x = event.x
+            self.start_y = event.y
 
-        event.x = min(max(event.x, 0), x1)
-        event.y = min(max(event.y, 0), y1)
-        self.shape.append(event.x)
-        self.shape.append(event.y)
+    def release_rectangle(self, event):
+        self.start_x = None
+        self.start_y = None
 
-        rec = self.canvas.create_rectangle(*self.shape, activeoutline="red", outline=self.color)
-        self.shapes.append(rec)
+    def mainloop(self):
+        self.root.mainloop()
 
 
-
-if __name__ == '__main__':
-    Display().mainloop()
+if __name__ == "__main__":
+    root = Tk()
+    app = RectangleDrawingApp(root)
+    app.mainloop()
